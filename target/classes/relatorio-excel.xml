@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <flow name="relatorio-excelFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/abc"  doc:name="HTTP"/>
+        <component class="br.ufsc.das.ObterPedidos" doc:name="Obter Pedidos"/>
+        <response>
+            <set-payload value="Enviando e-mail para #[message.outboundProperties.'destinatarioEmail']" doc:name="Set Payload"/>
+        </response>
+        <set-property propertyName="destinatarioEmail" value="angelacrepaldi@gmail.com" doc:name="Definindo destinatario do email"/>
+        <async doc:name="Async">
+            <component class="br.ufsc.das.GerarRelatorio" doc:name="Gerar Relatorio"/>
+            <set-attachment attachmentName="Relatorio_de_Vendas.xls" value="#[message.payload]" contentType="application/vnd.ms-excel" doc:name="Adicionar Relatorio como Anexo"/>
+            <set-payload value="Ola! Segue em anexo os pedidos."  doc:name="Corpo do E-mail"/>
+            <smtps:outbound-endpoint host="smtp.sistemas.ufsc.br" port="587" user="testedas" password="testedas" to="#[message.outboundProperties.'destinatarioEmail']" from="testedas@sistemas.ufsc.br" subject="Pedido efetuado" responseTimeout="10000" doc:name="SMTP"/>
+        </async>
+    </flow>
+</mule>
